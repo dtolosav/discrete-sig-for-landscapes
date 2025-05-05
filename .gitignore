@@ -1,0 +1,19 @@
+# === Core Exclusions ===
+**/__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# === Data ===
+
+
+# === External Code ===
+src/
+fruits_tmp/
+# === Results ===
+notebooks/backup/
+results/*/backup/
+
+# === System ===
+.DS_Store
+Thumbs.db
+.env
