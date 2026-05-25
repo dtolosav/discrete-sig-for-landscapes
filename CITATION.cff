@@ -1,0 +1,49 @@
+cff-version: 1.2.0
+title: Discrete Signatures in Topological Data Analysis
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: "TBD"
+    given-names: "Your Name"
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+    affiliation: "Your Institution"
+license: MIT
+repository-code: "https://github.com/yourusername/signature-tensors-tda"
+url: "https://github.com/yourusername/signature-tensors-tda"
+abstract: "Vectorization of persistence homology using discrete signatures (iterated sums) on knotted protein datasets. Shows superior discriminatory power compared to Chen signatures."
+keywords:
+  - topological-data-analysis
+  - persistence-homology
+  - machine-learning
+  - protein-structure
+  - signatures
+  - FRUITS
+  - pySigLib
+version: 1.0.0
+date-released: 2025-01-01
+references:
+  - type: software
+    title: "FRUITS: Feature Extraction Using Iterated Sums"
+    authors:
+      - family-names: "Diehl"
+        given-names: "J."
+      - family-names: "Krieg"
+        given-names: "R."
+    year: 2023
+    url: "https://github.com/irkri/fruits"
+  - type: software
+    title: "pySigLib"
+    authors:
+      - family-names: "Chevyrev"
+        given-names: "I."
+      - family-names: "Oberhauser"
+        given-names: "H."
+    url: "https://github.com/crisli/pysiglib"
+  - type: article
+    title: "On homology of homologous knotted proteins"
+    authors:
+      - family-names: "Benjamin"
+        given-names: "K."
+      - family-names: "others"
+    year: 2023
+    journal: "Journal Name"

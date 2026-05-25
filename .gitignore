@@ -1,19 +1,56 @@
-# === Core Exclusions ===
-**/__pycache__/
+# === Python ===
+__pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# === Jupyter ===
 .ipynb_checkpoints/
+*.ipynb_checkpoints/
 
-# === Data ===
+# === Environments ===
+.env
+.venv
+env/
+venv/
+ENV/
 
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# === External Code ===
-src/
-fruits_tmp/
-# === Results ===
-notebooks/backup/
-results/*/backup/
+# === Data & Results (large files) ===
+# Processed data - regenerable from scripts
+data/processed/
+data/input/
+data/external/landscapes/
+# Results - regenerable from scripts
+results/tests/
+
+# === Large binary files ===
+*.npz
+*.npy
+*.pkl
+*.pickle
+*.csv
+results/*.json
+
+# === Logs & Temporary ===
+*.log
+*.tmp
+*.temp
+*_backup
+*old*
+/logs/
 
 # === System ===
 .DS_Store
 Thumbs.db
-.env
