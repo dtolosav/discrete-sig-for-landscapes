@@ -69,6 +69,7 @@ pip install --upgrade pip setuptools wheel
 
 echo ""
 echo -e "${YELLOW}Step 4: Installing Python dependencies...${NC}"
+git submodule update --init --recursive
 pip install -r requirements.txt
 echo -e "${GREEN}✓ Dependencies installed${NC}"
 
