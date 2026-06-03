@@ -18,5 +18,5 @@ tqdm>=4.66.0
 pytest>=7.0
 
 # Signature computation
-fruits>=1.2.1
+#fruits>=1.2.1
 pysiglib>=1.0.0
