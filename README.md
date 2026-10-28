@@ -1,5 +1,32 @@
 # Discrete Signatures in Topological Data Analysis
 
+> Revision status (2026-10-28): the result summaries below are historical x1
+> results, not validated revised conclusions. Revised experiments use x6 and
+> the approved protocol in `configs/revision.json`. See
+> [revision execution notes](docs/revision_execution.md) for focused tests and
+> the small feature pilot. Full comparisons are not yet reproduced; knot-depth
+> prediction is deferred from this revision.
+
+## Revised comparison workflow
+
+Use the verified Python 3.11 WSL/Linux environment. The consolidated
+[protocol](docs/revision_protocol.md) specifies the cohort, fixed ablation grid,
+24 configurations, scaling, optimisation, timing and descriptive reporting.
+The driver saves exact source snapshots and resumable checkpoints.
+
+```sh
+python -m pytest -q tests
+python scripts/run_revision.py --scope pilot --output-dir ../results/revision-driver-pilot/2026-10-28-v2
+python scripts/report_revision.py --run-dir ../results/revision-driver-pilot/2026-10-28-v2
+python scripts/run_revision.py --scope full --prepare-only --output-dir ../results/revision-full/2026-10-28
+```
+
+The pilot uses 18 proteins and two ten-start runs across all 24 settings; its
+scores are implementation diagnostics. The full scope uses 363 proteins and
+100 ten-start runs. After validation, remove `--prepare-only` to execute; repeat
+the command to resume. Changed inputs, numerical source or settings require a
+new output directory. The older commands and results below are historical.
+
 This repository contains code and experiments accompanying the paper *Discrete signature tensors for persistence landscapes*. The repository implements the **Discrete Landscape Feature Map (DLFM)**, a vectorisation of persistence landscapes based on discrete signatures of critical-point time series.
 
 We compare DLFM against continuous (Chen) signatures, integrated landscape signatures, and standard landscape vectorisations on a dataset of knotted proteins. The experiments show that DLFM provides substantially improved discriminative power for recovering biologically meaningful structure from persistent homology features.
@@ -28,7 +55,8 @@ signature-tensors-tda/
 ├── environment.yml                     # Conda environment definition
 ├── requirements.txt                    # Pip requirements
 ├── scripts/
-│   ├── 1_process_landscapes.py         # Landscape preprocessing
+│   ├── 1_process_lan_script.py         # Landscape preprocessing
+│   ├── audit_landscape_inputs.py       # Input checksums and label reconciliation
 │   ├── 2a_compute_discrete_sigs.py     # DLFM computation
 │   ├── 2b_compute_Chen_sigs.py         # Continuous signature baselines
 │   ├── 3a_kmeans_clustering.py         # Clustering on signature features
@@ -98,10 +126,22 @@ Persistence landscapes can be obtained from:
 Place `.lan` files in a directory, then preprocess:
 
 ```bash
-python scripts/1_process_landscapes.py \
+python scripts/1_process_lan_script.py \
   --directory path/to/landscapes \
   --trunc-level 15 \
-  --output-dir data/
+  --output-dir data/processed
+```
+
+Before preprocessing manuscript-facing data, record the exact cohort and verify its alignment with the classification file:
+
+```bash
+python scripts/audit_landscape_inputs.py \
+  --cohort x1=path/to/interpolated_x1 \
+  --classification data/external/trefoil_list.csv \
+  --output-dir results/input-audit \
+  --trunc-level 15 \
+  --source-url https://github.com/katherine-benjamin/ph-knotted-proteins \
+  --source-commit 6262a2bf760155a9a3aad2672d1e51f07a01dfe9
 ```
 
 This generates compressed NumPy arrays ready for signature computation.

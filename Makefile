@@ -10,7 +10,7 @@ help:
 	@echo "  make install       Alias for make setup"
 	@echo ""
 	@echo "Development:"
-	@echo "  make test          Run pytest on the src/ directory"
+	@echo "  make test          Run the project pytest suite"
 	@echo "  make clean         Remove generated files (__pycache__, *.pyc, etc.)"
 	@echo "  make data-dirs     Create data and results directories"
 	@echo "  make verify        Verify installation by importing key modules"
@@ -75,4 +75,4 @@ verify:
 
 test:
 	@echo "Running tests..."
-	@pytest tests/ -v 2>/dev/null || echo "⚠ No tests found in tests/"
+	@pytest tests/ -v

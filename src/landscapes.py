@@ -301,6 +301,13 @@ def load(fname):
             x, y = line.split()
             X_k.append(float(x))
             Y_k.append(float(y))
+    # The last level has no following header to flush it.
+    if k > 0:
+        X_k.append(inf)
+        Y_k.append(0)
+        critical_numbers.append(X_k)
+        critical_values.append(Y_k)
+    f.close()
     return PersistenceLandscape(critical_numbers, critical_values)
 
 def linear_combination(landscapes, weights, max_k = None):

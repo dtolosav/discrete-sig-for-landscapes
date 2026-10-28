@@ -36,7 +36,10 @@ def load_lan(filename, trunc_level):
                     raise ValueError("Expected exactly two tokens per critical point line, got: " + str(tokens))
                 eps = float(tokens[0])
                 val = float(tokens[1])
-                current_points.append((eps, val))
+                # Exact duplicate knots do not change the PWL function. The
+                # recovered x6 cohort contains one such repeated zero knot.
+                if not current_points or current_points[-1] != (eps, val):
+                    current_points.append((eps, val))
     # Append any remaining points as the last level.
     if current_points and current_level_count < trunc_level:
         levels.append(current_points)

@@ -136,10 +136,28 @@ def run_l1_kmeans(landscapes, labels, n_clusters=9, n_runs=100, max_iter=200, ba
 
 
 def _median_landscape(landscapes):
-    """Compute coordinate-wise median of a list of landscapes (simplified)."""
-    # For now, return the first landscape as placeholder; 
-    # proper median would require landscape algebra
-    return landscapes[0]
+    """Pointwise functional median, including segment-intersection knots.
+
+    The historical driver still needs the revision's run/level/timing protocol;
+    fixing this centre operation alone does not validate its old results.
+    """
+    from functional_l1 import median_landscape
+    curves = []
+    for landscape in landscapes:
+        levels = []
+        for r in range(1, landscape.max_k() + 1):
+            x, y = landscape.X(r), landscape.Y(r)
+            finite = np.isfinite(x)
+            if finite.any():
+                levels.append((x[finite], y[finite]))
+            else:
+                levels.append((np.array([0., 1.]), np.zeros(2)))
+        curves.append(levels)
+    centre = median_landscape(curves)
+    return pl.PersistenceLandscape(
+        [np.r_[-np.inf, x, np.inf] for x, _ in centre],
+        [np.r_[0., y, 0.] for _, y in centre],
+    )
 
 
 if __name__ == '__main__':
