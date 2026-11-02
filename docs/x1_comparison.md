@@ -1,5 +1,16 @@
 # Primary x1 comparison, 2 November 2026
 
+Latest update (D-2026-023): a separately timed primary x1 L1 run is authorised.
+Run `python scripts/run_x1_l1.py --output-dir ../results/x1-l1/2026-11-02-run`
+to execute or resume it; append `--prepare-only` to validate inputs first.
+Completion requires `verified_results.json`. Loading, functional conversion,
+all-start clustering and session wall time are recorded. The five-vector
+manifest remains unchanged. No x1 ablations or vector timing reruns are added.
+The clustering illustration now selects the run nearest the median objective,
+with first-index ties, to show a typical objective value without consulting
+sequence labels. Earlier descriptions of minimum-objective selection below
+are superseded for this figure only.
+
 Presentation update: D-2026-022 designates the corrected x1 comparison as the
 main application and moves x6 to an application appendix. This does not add
 functional L1 or ablations to the x1 run. The five-method comparison is complete

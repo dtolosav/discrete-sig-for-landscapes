@@ -1,6 +1,6 @@
 """Verified x1 author-review figures and primary uniform-grid error audit.
 
-No clustering is refitted. The displayed partition minimises the saved
+No clustering is refitted. The displayed partition is nearest the median saved
 clustering objective, independently of sequence labels. PCA is descriptive.
 """
 import argparse
@@ -42,7 +42,8 @@ def main():
     names = sorted(set(classes))
     colors = plt.get_cmap('tab10').colors
     fits = [json.loads((campaign / 'primary-dlfm' / f'run-{i:03d}.json').read_text()) for i in range(100)]
-    chosen = int(np.argmin([f['objective'] for f in fits]))
+    objectives = np.array([f['objective'] for f in fits])
+    chosen = int(np.argmin(np.abs(objectives - np.median(objectives))))
     labels = np.array(fits[chosen]['labels'])
     order = sorted(set(labels), key=lambda j: (-sum(labels == j), j))
     counts = np.array([[sum((labels == j) & (classes == c)) for j in order] for c in names])
@@ -62,7 +63,7 @@ def main():
         bottom += row
     axes[0].set(xticks=np.arange(9), xticklabels=np.arange(1, 10),
                 xlabel='Cluster (ordered by size)', ylabel='Number of proteins',
-                title=f'Lowest-objective solution (ARI {ari[chosen]:.3f})', ylim=(0, 1.08 * max(bottom)))
+                title=f'Median-objective solution (ARI {ari[chosen]:.3f})', ylim=(0, 1.08 * max(bottom)))
     axes[0].legend(title='Sequence class', ncol=3, fontsize=8,
                    loc='upper right', frameon=False)
     # Include every run, including rare lower-agreement outcomes.
@@ -118,12 +119,13 @@ def main():
     save(fig, 'x1_depth_association')
 
     captions = {
-        'x1_cluster_composition': 'DLFM clustering of 363 x1 protein chains at 15 landscape levels and weight 3. Left: the solution with the smallest objective among all 100 ten-start runs; selection uses no sequence labels. Bars show sequence-class counts and clusters are ordered by size. Right: ARI values for every run, including the lower-agreement outcomes; the dashed line identifies the displayed solution.',
+        'x1_cluster_composition': 'DLFM clustering of 363 x1 protein chains at 15 landscape levels and weight 3. Left: the saved solution whose objective is closest to the median objective across all 100 ten-start runs, taking the first run in case of a tie. This illustrates a typical objective value and uses no sequence labels for selection. Each run still selects its best of ten starts by minimum objective. Bars show sequence-class counts and clusters are ordered by size. Right: ARI values for every run, including the lower-agreement outcomes; the dashed line identifies the displayed solution.',
         'x1_pca_views': f'First three principal components of the standardised x1 DLFM vectors, explaining {sum(ratios):.1%} of variance. Coordinates are identical in both panels; colours indicate sequence class and knot-depth category. PCA uses no class or depth labels and is not used as input to clustering.',
         'x1_depth_association': 'Standardised x1 DLFM distances and absolute knot-depth differences for all unordered pairs, pairs within sequence classes, and pairs between classes. Each distinct pair is counted once. Shading and colour bars show pair counts on logarithmic scales. Axis ranges differ between panels to show the variation within each group. Correlations are descriptive; pairs sharing a protein are not independent observations.'}
     for name, caption in captions.items():
         (out / f'{name}_caption.txt').write_text(caption + '\n')
-    metadata = dict(selected_run_zero_based=chosen, selection='minimum clustering objective; first tie',
+    metadata = dict(selected_run_zero_based=chosen, selection='closest to median clustering objective; first tie',
+                    median_objective=float(np.median(objectives)),
                     ARI=fits[chosen]['ARI'], NMI=fits[chosen]['NMI'],
                     objective=fits[chosen]['objective'], counts=counts, class_order=names,
                     cluster_order=[int(j) for j in order], runs_ARI_above_09=int(sum(ari > .9)),
