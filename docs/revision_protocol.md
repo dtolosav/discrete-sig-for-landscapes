@@ -5,6 +5,27 @@ It specifies implementation details without changing the approved comparisons.
 The active configuration is `configs/revision.json`; actual executions bind
 inputs, settings, code, dependency versions and seeds in `manifest.json`.
 
+## Author-approved reduced completion scope (2026-11-02)
+
+D-2026-021 defers only `levels-10-functional_l1` for this submission, at 24
+completed ten-start runs. Partial scores are excluded. The primary functional
+L1 comparison and its five-level ablation remain included. The original
+24-configuration manifest is preserved; the report covers 23 configurations
+and explicitly records the exclusion. This supersedes the full-completion
+requirement below only for this deferred configuration.
+
+Resume the remaining work with:
+
+```sh
+python scripts/run_revision.py --scope full --output-dir ../results/revision-full/2026-10-28-run --only weight-2-dlfm weight-2-chen weight-2-time_chen weight-2-integrated_chen grid-512-flattened grid-2048-flattened
+python scripts/report_reduced_x6.py --run-dir ../results/revision-full/2026-10-28-run --output-dir ../results/revision-reduced/2026-11-02
+```
+
+The original status remains incomplete at 23/24; completion of the authorised
+scope is recorded separately in the reduced report's `scope.json` after all
+23 configurations pass verification. Do not restart the original unfiltered
+campaign unless the deferred L1 work is explicitly resumed.
+
 ## Inputs and representations
 
 Use the 363 named x6 chains, sorted by chain identifier; exclude the 150 `Other`
