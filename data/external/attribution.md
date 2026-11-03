@@ -9,6 +9,8 @@ The upstream MIT notice is preserved in `LICENSE-Benjamin.txt`.
 Each degree-one cohort has 513 chains: 363 in nine named classes and 150 labelled
 Other. The experiments exclude Other. `input_checksums.json` records every
 landscape checksum and the corrected classification-file checksum.
+The fetch script reproduces the audited checkout's CRLF line endings on both
+platforms, so byte checksums remain comparable without changing numeric data.
 
 `trefoil_list.csv` contains the 513 logical source rows. We removed 79 malformed
 duplicate rows from the earlier local copy and corrected the C-tail of `5jes_B`

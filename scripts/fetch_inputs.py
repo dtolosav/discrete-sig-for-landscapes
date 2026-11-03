@@ -18,7 +18,10 @@ def main():
     cohorts = ('x1', 'x6') if args.cohort == 'both' else (args.cohort,)
     destination.parent.mkdir(parents=True, exist_ok=True)
     if not destination.exists():
-        subprocess.run(['git', 'clone', '--filter=blob:none', '--no-checkout', URL, str(destination)], check=True)
+        # The archived audit hashed a Windows checkout. Reproduce those exact
+        # CRLF bytes on Linux too; this changes no landscape values.
+        subprocess.run(['git', 'clone', '--config', 'core.autocrlf=true',
+                        '--filter=blob:none', '--no-checkout', URL, str(destination)], check=True)
         # A sparse checkout avoids downloading point clouds and diagrams.
         subprocess.run(['git', '-C', str(destination), 'sparse-checkout', 'set',
                         'data/validation/landscapes/interpolated_x1',
