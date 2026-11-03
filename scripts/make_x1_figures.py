@@ -27,6 +27,33 @@ from src.revision_features import evaluate, reconstruction_errors
 from src.functional_l1 import as_functional, l1_distance
 
 
+def plot_pca(xyz, ratios, classes, depths):
+    """Draw identical PCA coordinates with two colourings and aligned legends."""
+    names = sorted(set(classes))
+    colors = plt.get_cmap('tab10').colors
+    fig = plt.figure(figsize=(10, 5.6))
+    ax1 = fig.add_axes([.015, .25, .40, .68], projection='3d')
+    ax2 = fig.add_axes([.545, .25, .40, .68], projection='3d')
+    for name, color in zip(names, colors):
+        ax1.scatter(*xyz[classes == name].T, s=19, color=color, label=name, alpha=.8, depthshade=False)
+    for name, mask, color in [('Shallow (<0.005)', depths < .005, '#357db0'),
+                               ('Intermediate', (depths >= .005) & (depths <= .05), '#a9adb3'),
+                               ('Deep (>0.05)', depths > .05, '#d05a37')]:
+        ax2.scatter(*xyz[mask].T, s=19, color=color, label=name, alpha=.8, depthshade=False)
+    for ax in (ax1, ax2):
+        ax.set_xlabel(f'PC1 ({ratios[0]:.1%})')
+        ax.set_ylabel(f'PC2 ({ratios[1]:.1%})')
+        ax.set_zlabel(f'PC3 ({ratios[2]:.1%})')
+        ax.view_init(elev=23, azim=-58)
+    ax1.set_title('Sequence-similarity class')
+    ax2.set_title('Knot-depth category')
+    ax1.legend(fontsize=10, ncol=3, loc='upper center',
+               bbox_to_anchor=(.215, .20), bbox_transform=fig.transFigure)
+    ax2.legend(fontsize=10, loc='upper center',
+               bbox_to_anchor=(.745, .20), bbox_transform=fig.transFigure)
+    return fig
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run-dir', type=Path, required=True)
@@ -83,25 +110,7 @@ def main():
     pca = PCA(n_components=3, svd_solver='full')
     xyz = pca.fit_transform(features)
     ratios = pca.explained_variance_ratio_
-    fig = plt.figure(figsize=(9, 5.6), layout='constrained')
-    ax1 = fig.add_subplot(121, projection='3d')
-    ax2 = fig.add_subplot(122, projection='3d')
-    for name, color in zip(names, colors):
-        ax1.scatter(*xyz[classes == name].T, s=19, color=color, label=name, alpha=.8, depthshade=False)
-    for name, mask, color in [('Shallow (<0.005)', depths < .005, '#357db0'),
-                               ('Intermediate', (depths >= .005) & (depths <= .05), '#a9adb3'),
-                               ('Deep (>0.05)', depths > .05, '#d05a37')]:
-        ax2.scatter(*xyz[mask].T, s=19, color=color, label=name, alpha=.8, depthshade=False)
-    for ax in (ax1, ax2):
-        ax.set_xlabel(f'PC1 ({ratios[0]:.1%})')
-        ax.set_ylabel(f'PC2 ({ratios[1]:.1%})')
-        ax.set_zlabel(f'PC3 ({ratios[2]:.1%})')
-        ax.view_init(elev=23, azim=-58)
-    ax1.set_title('Sequence-similarity class')
-    ax2.set_title('Knot-depth category')
-    ax1.legend(fontsize=10, ncol=3, loc='lower center', bbox_to_anchor=(.5, -.25))
-    ax2.legend(fontsize=10, loc='lower center', bbox_to_anchor=(.5, -.20))
-    fig.suptitle(f'First three principal components: {sum(ratios):.1%} of variance')
+    fig = plot_pca(xyz, ratios, classes, depths)
     save(fig, 'x1_pca_views')
     save_npz(out / 'pca_coordinates.npz', coordinates=xyz, explained_variance_ratio=ratios,
              chains=manifest['chains'])
