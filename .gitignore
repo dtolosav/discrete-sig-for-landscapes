@@ -33,7 +33,7 @@ data/processed/
 data/input/
 data/external/landscapes/
 # Results - regenerable from scripts
-results/tests/
+results/
 
 # === Large binary files ===
 *.npz
@@ -41,6 +41,7 @@ results/tests/
 *.pkl
 *.pickle
 *.csv
+!data/external/trefoil_list.csv
 results/*.json
 
 # === Logs & Temporary ===

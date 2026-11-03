@@ -7,7 +7,7 @@ from scipy.spatial.distance import pdist
 from scipy.stats import rankdata
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 from src.input_audit import sha256_file
-from src.revision_experiment import save_json, save_npz
+from src.revision_experiment import save_json, save_npz, seeds_for_specification
 
 
 def rank_correlation(x, y):
@@ -47,10 +47,11 @@ def collect_summaries(directory):
         for relative, expected in summary["artifact_sha256"].items():
             if sha256_file(folder / relative) != expected:
                 raise ValueError(f"Changed artifact: {folder / relative}")
-        if summary["specification"] != spec or summary["runs"] != len(manifest["start_seeds"]):
+        seeds_for_method = seeds_for_specification(spec, manifest["config"], manifest["start_seeds"])
+        if summary["specification"] != spec or summary["runs"] != len(seeds_for_method):
             raise ValueError("Specification/run-count mismatch")
         scores, seconds = [], []
-        for r, seeds in enumerate(manifest["start_seeds"]):
+        for r, seeds in enumerate(seeds_for_method):
             fit = json.loads((folder / f"run-{r:03d}.json").read_text())
             if [start["seed"] for start in fit["starts"]] != seeds:
                 raise ValueError("Start seeds mismatch")

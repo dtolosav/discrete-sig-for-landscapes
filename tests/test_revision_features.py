@@ -141,30 +141,16 @@ def test_even_singleton_and_missing_levels():
     assert np.interp(1, *centre[1]) == .5
 
 
-def test_historical_median_adapter(monkeypatch):
-    import runpy
-    from pathlib import Path
-    from src import landscapes as pl
-    root = Path(__file__).resolve().parents[1]
-    monkeypatch.chdir(root)
-    functions = runpy.run_path(str(root / "scripts/3c_kmeans_on_landscapes_L1.py"))
-    knots = np.array([-np.inf, 0., 1., 2., 3., np.inf])
-    inputs = [pl.PersistenceLandscape([knots], [np.array(y)]) for y in
-              ([0., 0., 1., 0., 0., 0.], [0., 0., 0., 1., 0., 0.],
-               [0., 0., 0., 0., 0., 0.])]
-    centre = functions["_median_landscape"](inputs)
-    assert centre.lambda_k(1, 1.5) == pytest.approx(.5)
-    assert sum(pl.distance(c, centre, 1) for c in inputs) == pytest.approx(1.75)
-
-
 def test_functional_loader_keeps_final_level(tmp_path):
-    from src import landscapes as pl
+    from src.process_lan import load_lan
+    from src.functional_l1 import as_functional
     path = tmp_path / "triangle.lan"
     path.write_text("#lambda_1\n0 0\n1 1\n2 0\n")
-    landscape = pl.load(path)
-    assert landscape.max_k() == 1
-    assert landscape.lambda_k(1, 1) == 1
-    assert landscape.norm(1) == pytest.approx(1)
+    landscape = load_lan(path, 1)
+    assert len(landscape) == 1
+    curve = as_functional([landscape], 2.)[0][0]
+    assert np.interp(1., *curve) == 1.
+    assert l1_distance(curve, (np.array([0., 2.]), np.zeros(2))) == pytest.approx(1.)
 
 
 def test_repeated_identical_knots_preserve_the_landscape(tmp_path):

@@ -30,7 +30,16 @@ def specifications(config):
         add(f"weight-{k}", METHODS[:4], weight=k)
     for n in config["ablation_grid_points"]:
         add(f"grid-{n}", ("flattened",), points=n)
-    return specs
+    excluded = config.get("exclude_specifications", [])
+    if not set(excluded).issubset({s["id"] for s in specs}):
+        raise ValueError("Unknown excluded specification")
+    return [s for s in specs if s["id"] not in excluded]
+
+
+def seeds_for_specification(spec, config, seeds):
+    """Use prefixes of the common seed matrix, including the shorter L1 run."""
+    count = config.get("method_runs", {}).get(spec["method"], config["runs"])
+    return seeds[:count]
 
 
 def json_value(value):

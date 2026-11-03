@@ -1,329 +1,91 @@
-# Discrete Signatures in Topological Data Analysis
+# Discrete signature tensors for persistence landscapes
 
-> Revision status (2026-10-28): the result summaries below are historical x1
-> results, not validated revised conclusions. Revised experiments use x6 and
-> the approved protocol in `configs/revision.json`. See
-> [revision execution notes](docs/revision_execution.md) for focused tests and
-> the small feature pilot. Full comparisons are not yet reproduced; knot-depth
-> prediction is deferred from this revision.
+Code for the paper by Vincenzo Galgano, Heather A. Harrington and Daniel Tolosa.
+The revised application compares six landscape representations on 363 knotted
+protein chains. **x1** (C-alpha atoms) is the main comparison; **x6** (five added
+points between consecutive atoms) is the appendix comparison.
 
-## Revised comparison workflow
+## Install
 
-Use the verified Python 3.11 WSL/Linux environment. The consolidated
-[protocol](docs/revision_protocol.md) specifies the cohort, fixed ablation grid,
-24 configurations, scaling, optimisation, timing and descriptive reporting.
-The driver saves exact source snapshots and resumable checkpoints.
+Use Ubuntu/Linux, or Ubuntu under **WSL2 on Windows**. On Windows, install WSL
+from PowerShell with `wsl --install -d Ubuntu`, restart if requested, then open
+Ubuntu. All remaining commands run in that Linux terminal. Keep the clone and
+environment under your Linux home directory (`~/`), rather than `/mnt/c/`.
 
-```sh
+Install [Miniforge](https://github.com/conda-forge/miniforge#install) and the OS
+tools `git`, `gcc`, `g++` and `make` (on Ubuntu: `sudo apt install git build-essential`).
+Then:
+
+```bash
+git clone --recurse-submodules https://github.com/dtolosav/discrete-sig-for-landscapes.git
+cd discrete-sig-for-landscapes
+conda create -n discrete-sig python=3.11 pip
+conda activate discrete-sig
+bash setup.sh
 python -m pytest -q tests
-python scripts/run_revision.py --scope pilot --output-dir ../results/revision-driver-pilot/2026-10-28-v2
-python scripts/report_revision.py --run-dir ../results/revision-driver-pilot/2026-10-28-v2
-python scripts/run_revision.py --scope full --prepare-only --output-dir ../results/revision-full/2026-10-28
 ```
 
-The pilot uses 18 proteins and two ten-start runs across all 24 settings; its
-scores are implementation diagnostics. The full scope uses 363 proteins and
-100 ten-start runs. After validation, remove `--prepare-only` to execute; repeat
-the command to resume. Changed inputs, numerical source or settings require a
-new output directory. The older commands and results below are historical.
+`setup.sh` installs the tested package versions, CPU-only PyTorch and the pinned
+FRUITS submodule. No GPU or notebook is needed. The tested platform is Ubuntu
+24.04 x86-64, including WSL2. The paper release is **v1.0.0**; use
+`git checkout v1.0.0` followed by `git submodule update --init --recursive` to
+work with that fixed version.
 
-This repository contains code and experiments accompanying the paper *Discrete signature tensors for persistence landscapes*. The repository implements the **Discrete Landscape Feature Map (DLFM)**, a vectorisation of persistence landscapes based on discrete signatures of critical-point time series.
+## Regenerate the paper's tables and figures
 
-We compare DLFM against continuous (Chen) signatures, integrated landscape signatures, and standard landscape vectorisations on a dataset of knotted proteins. The experiments show that DLFM provides substantially improved discriminative power for recovering biologically meaningful structure from persistent homology features.
-
-For mathematical details and theoretical results, see the accompanying paper.
-
----
-
-## Main Results
-
-On a dataset of knotted proteins, DLFM:
-
-- Outperforms continuous (Chen) signatures and standard landscape vectorisations in clustering tasks
-- Achieves high agreement with sequence similarity classes (ARI ≈ 0.96, NMI ≈ 0.88)
-- Provides substantially more compact feature vectors than direct landscape vectorisations
-- Supports downstream machine learning tasks such as knot-depth prediction
-
----
-
-## Repository Structure
-
-```text
-signature-tensors-tda/
-├── README.md                           # This file
-├── LICENSE                             # MIT License
-├── environment.yml                     # Conda environment definition
-├── requirements.txt                    # Pip requirements
-├── scripts/
-│   ├── 1_process_lan_script.py         # Landscape preprocessing
-│   ├── audit_landscape_inputs.py       # Input checksums and label reconciliation
-│   ├── 2a_compute_discrete_sigs.py     # DLFM computation
-│   ├── 2b_compute_Chen_sigs.py         # Continuous signature baselines
-│   ├── 3a_kmeans_clustering.py         # Clustering on signature features
-│   ├── 3b_kmeans_on_flat_landscapes.py # Direct landscape vectorisation baseline
-│   └── 3c_kmeans_on_landscapes_L1.py   # L1-distance baseline
-├── data/
-│   ├── README.md
-│   └── external/
-│       └── attribution.md
-├── results/                            # Computed signatures and clustering outputs
-├── docs/
-│   └── setup.md                        # Detailed installation/troubleshooting
-└── references.bib                      # Bibliography references
-```
-
----
-
-# Quick Start
-
-## 1. Environment Setup
-
-The repository is primarily tested on Linux.
-
-We provide both Conda- and pip-based installation workflows. Some dependencies (`fruits`, `pysiglib`) include compiled extensions and may require WSL or Docker on Windows systems.
-
-### Option A: Conda (Recommended)
+This uses the saved campaign records and requires no new clustering or raw-data
+download:
 
 ```bash
-conda env create -f environment.yml
-conda activate signature-tensors-tda
+python scripts/fetch_results.py
+python scripts/report_revision.py --paper-bundle results/paper-results-v1.0.0
 ```
 
-### Option B: Pip + Virtual Environment
+Outputs appear in `results/paper/`: four tables (CSV and LaTeX rows), three
+figures (PDF/PNG), and numerical metadata. Scores are recalculated from saved
+assignments; figures retain the paper's selection rules. The bundle download
+is checksummed and contains original provenance records, not just final scores.
+
+## Run a small example
 
 ```bash
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+python scripts/fetch_inputs.py
+python scripts/run_revision.py --scope pilot --output-dir results/demo
+python scripts/report_revision.py --run-dir results/demo
 ```
 
-### Option C: Manual Installation
+The example runs all six methods on 18 proteins with two ten-start repetitions.
+It tests the workflow; its smaller critical grid and scores are not paper results.
+Allow a few minutes after installation, including first-use compilation.
+
+## Recompute the experiments
 
 ```bash
-pip install -U pip setuptools wheel
-pip install numpy scipy pandas scikit-learn matplotlib seaborn tqdm jupyter
-
-# CPU-only pySigLib
-export CUSIG=0
-
-pip install pysiglib
+python scripts/run_revision.py --config configs/x1.json --scope full --output-dir results/x1
+python scripts/run_revision.py --config configs/x6.json --scope full --output-dir results/x6
 ```
 
-See `docs/setup.md` for additional setup instructions and troubleshooting.
-
----
-
-## 2. Download & Preprocess Landscapes
-
-Persistence landscapes can be obtained from:
-
-- **Option A (Recommended):** Download preprocessed landscapes from the repository accompanying Benjamin et al. (2023):
-  https://github.com/katherine-benjamin/ph-knotted-proteins
-
-- **Option B:** Download raw protein data from KnotProt2.0 and compute landscapes independently:
-  https://knotprot.cent.uw.edu.pl/
-
-Place `.lan` files in a directory, then preprocess:
-
-```bash
-python scripts/1_process_lan_script.py \
-  --directory path/to/landscapes \
-  --trunc-level 15 \
-  --output-dir data/processed
-```
-
-Before preprocessing manuscript-facing data, record the exact cohort and verify its alignment with the classification file:
-
-```bash
-python scripts/audit_landscape_inputs.py \
-  --cohort x1=path/to/interpolated_x1 \
-  --classification data/external/trefoil_list.csv \
-  --output-dir results/input-audit \
-  --trunc-level 15 \
-  --source-url https://github.com/katherine-benjamin/ph-knotted-proteins \
-  --source-commit 6262a2bf760155a9a3aad2672d1e51f07a01dfe9
-```
-
-This generates compressed NumPy arrays ready for signature computation.
-
----
-
-## 3. Compute Signatures
-
-### Compute DLFM Features (Discrete Signatures)
-
-Requires the `fruits` package.
-
-```bash
-python scripts/2a_compute_discrete_sigs.py \
-  --input data/landscapes_array_L15_*.npz \
-  --weight 3 \
-  --csv
-```
-
-### Compute Continuous (Chen) Signatures
-
-Requires `pysiglib`.
-
-```bash
-python scripts/2b_compute_Chen_sigs.py \
-  --input data/landscapes_array_L15_*.npz
-```
-
-This computes:
-- Chen signatures of landscapes
-- Chen signatures of integrated landscapes
-
----
-
-## 4. Clustering Experiments
-
-### K-means on Signature Features
-
-```bash
-python scripts/3a_kmeans_clustering.py \
-  --input results/discrete_signatures_weight3_*.npz \
-  --n-clusters 9
-```
-
-### K-means on Flattened Landscapes
-
-```bash
-python scripts/3b_kmeans_on_flat_landscapes.py \
-  --input data/processed/landscapes_array_L15_*.npz \
-  --n-clusters 9
-```
-
-### K-means Using L1 Landscape Distances
-
-```bash
-python scripts/3c_kmeans_on_landscapes_L1.py \
-  --input path/to/raw/lan/dir \
-  --n-clusters 9
-```
-
-See script help messages (`--help`) for additional options and parameters.
-
----
-
-# Dependencies
-
-## Core Requirements
-
-- `numpy`
-- `scipy`
-- `pandas`
-- `scikit-learn`
-- `matplotlib`
-- `seaborn`
-
-## Signature Computation
-
-- `fruits` — discrete signature computation
-- `pysiglib` — continuous (Chen) signature computation
-
-## Optional
-
-- `jupyter`
-- `jupyterlab`
-
----
-
-# Data
-
-## Source Attribution
-
-All protein data originates from public sources.
-
-- **Protein structures:** Protein Data Bank (PDB)
-- **Knotted protein annotations:** KnotProt2.0
-- **Persistence landscapes:** Benjamin et al. (2023)
-- **Classification labels:** `trefoil_list.csv` from Benjamin et al.
-
-See:
-- `data/README.md`
-- `data/external/attribution.md`
-
-for complete attribution and licensing information.
-
----
-
-# Reproducibility
-
-The published experiments use fixed random seeds to ensure reproducibility of clustering results. Minor numerical differences may still arise across platforms or library versions.
-
----
-
-# Citation
-
-If you use this code, please cite the accompanying paper:
-
-```bibtex
-@misc{galgano_discrete_2025,
-	title = {Discrete signature tensors for persistence landscapes},
-	url = {http://arxiv.org/abs/2505.02800},
-	doi = {10.48550/arXiv.2505.02800},
-	author = {Galgano, Vincenzo and Harrington, Heather A. and Tolosa, Daniel},
-	month = may,
-	year = {2026},
-}
-```
-
-Please also cite the main software dependencies:
-
-- **FRUITS:** Diehl & Krieg — *Feature Extraction Using Iterated Sums*
-- **pySigLib:** Shmelev & Salvi — *pysiglib*
-- **Benjamin et al. (2023):** *Homology of homologous knotted proteins*
-
----
-
-# References
-
-See `references.bib` for the complete bibliography.
-
-Key references include:
-
-1. Diehl & Krieg — *FRUITS: Feature Extraction Using Iterated Sums*
-2. Benjamin et al. — *Homology of homologous knotted proteins*
-3. Bubenik — *Statistical topological data analysis using persistence landscapes*
-4. Edelsbrunner & Harer — *Computational Topology: An Introduction*
-
----
-
-# Troubleshooting
-
-## pySigLib Installation
-
-On Linux, ensure that a C++ compiler is available:
-
-```bash
-sudo apt install build-essential
-```
-
-## Landscape Processing
-
-- `.lan` files should follow the standard persistence landscape format
-- Use `--trunc-level 15` for consistency with the published experiments
-- Use `--exclude-other` to remove proteins labeled `"Other"`
-
----
-
-# Contributing
-
-This repository accompanies a peer-reviewed research paper. After publication, we welcome:
-
-- Bug reports and feature requests via GitHub Issues
-- Pull requests implementing improvements or extensions
-- Applications to additional datasets and benchmarking studies
-
----
-
-# License
-
-MIT License — see `LICENSE` for details.
-
----
-
-**Corresponding Author:** Daniel Tolosa  
-**Affiliation:** Arizona State University  
-**Contact:** dtolosav@asu.edu
+Run these sequentially. Repeat the same command to resume; completed proteins
+and clustering runs are reused. Full runs are expensive: DLFM vectorisation
+took about 2.75 hours for x1 on the reference machine, and functional L1 requires
+much longer. Use the saved-results route above for a quick examination of the paper.
+See [reproduction details](docs/reproduce.md) for timing commands, conventions,
+resource guidance, validation and the mapping from files to manuscript results.
+
+## Where to look
+
+- `src/revision_features.py`: landscape evaluation, signatures and standardisation.
+- `src/integrated_chen.py`: polynomial integration of integrated-landscape signatures.
+- `src/functional_l1.py`, `src/revision_clustering.py`: distances, medians and clustering.
+- `src/revision_experiment.py`: sequential execution and checkpoints.
+- `src/paper_reporting.py`, `src/paper_plots.py`: paper outputs.
+- `configs/x1.json`, `configs/x6.json`: exact reported settings; `tests/`: focused checks.
+
+Inputs come from Benjamin et al., *Homology of homologous knotted proteins*;
+see [attribution](data/external/attribution.md). Reproduction starts from their
+published landscapes, not from a new persistence computation on PDB coordinates.
+The earlier implementation is preserved in Git history and the
+`pre-vjom-revision` tag. It is not the implementation of the revised results.
+
+Please cite [the paper](https://doi.org/10.48550/arXiv.2505.02800) and the code
+release used. Citation metadata are in `CITATION.cff`. Code licence: MIT.

@@ -10,9 +10,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_protocol_has_only_prescribed_one_factor_ablations():
-    config = json.loads((ROOT / "configs/revision.json").read_text())
+    config = json.loads((ROOT / "configs/x6.json").read_text())
     specs = specifications(config)
-    assert len(specs) == 24 and len({s["id"] for s in specs}) == 24
+    assert len(specs) == 23 and len({s["id"] for s in specs}) == 23
     for s in specs:
         changes = sum((s["levels"] != 15, s["weight"] != 3, s["points"] != 1024))
         assert changes == (0 if s["group"] == "primary" else 1)
@@ -34,7 +34,7 @@ def test_manifest_rejects_changed_inputs_or_settings(tmp_path):
 
 @pytest.mark.parametrize("method", METHODS)
 def test_streamed_experiment_matches_batch_and_resumes_without_refitting(tmp_path, monkeypatch, method):
-    config = json.loads((ROOT / "configs/revision.json").read_text())
+    config = json.loads((ROOT / "configs/x6.json").read_text())
     config.update(support_L=2., clusters=2)
     grid = np.array([0., .4, .9, 1.3, 2.])
     rng = np.random.RandomState(23)

@@ -1,0 +1,45 @@
+name: Reproduce on clean Ubuntu
+on:
+  push:
+    branches: [main, codex/reproducibility-release]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  ubuntu:
+    runs-on: ubuntu-24.04
+    container: ubuntu:24.04
+    timeout-minutes: 45
+    steps:
+      - name: Install OS prerequisites
+        run: |
+          apt-get update
+          apt-get install -y git curl bzip2 build-essential ca-certificates
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Create Python environment
+        run: |
+          curl -fL https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -o /tmp/miniforge.sh
+          bash /tmp/miniforge.sh -b -p /opt/conda
+          /opt/conda/bin/conda create -y -n discrete-sig python=3.11 pip
+          echo /opt/conda/envs/discrete-sig/bin >> "$GITHUB_PATH"
+      - name: Install and test
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          bash setup.sh
+          python -m pytest -q tests
+          python -m pytest -q fruits/tests
+      - name: Fetch inputs and run all six methods on a small cohort
+        run: |
+          python scripts/fetch_inputs.py
+          python scripts/run_revision.py --scope pilot --output-dir results/demo
+          python scripts/report_revision.py --run-dir results/demo
+          python scripts/run_revision.py --scope pilot --output-dir results/demo
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ubuntu-demo
+          path: |
+            results/demo/manifest.json
+            results/demo/status.json
+            results/demo/reports/

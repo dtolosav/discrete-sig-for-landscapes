@@ -1,7 +1,7 @@
-"""Prepare or run the approved x6 protocol, with resumable per-protein outputs.
+"""Run x1 or x6 from published landscapes, with per-protein/run checkpoints.
 
-Default scope is an 18-protein/two-run validation pilot. Full scope retains all
-363 named chains and 100 runs. Both use ten starts and all approved ablations.
+The default pilot uses 18 proteins, six primary methods and two ten-start runs.
+Full scope uses the paper settings. Timing scope uses ten runs on all proteins.
 """
 import argparse
 import json
@@ -23,31 +23,33 @@ from threadpoolctl import threadpool_info
 from src.input_audit import load_canonical_classifications, sha256_file
 from src.process_lan import load_lan
 from src.revision_features import critical_grid, seed_manifest
-from src.revision_experiment import specifications, bind_manifest, save_json, save_npz, run_specification
+from src.revision_experiment import (specifications, seeds_for_specification,
+                                    bind_manifest, save_json, save_npz, run_specification)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--scope", choices=("pilot", "full"), default="pilot")
+    parser.add_argument("--scope", choices=("pilot", "full", "timing"), default="pilot")
     parser.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--only", nargs="+", help="Run only these specification IDs; manifest still lists all")
-    parser.add_argument("--config", type=Path, default=ROOT / "configs/revision.json")
-    parser.add_argument("--input-directory", type=Path, default=ROOT /
-                        "data/external/landscapes/ph-knotted-proteins/data/validation/landscapes/interpolated_x6")
+    parser.add_argument("--config", type=Path, default=ROOT / "configs/x1.json")
+    parser.add_argument("--input-directory", type=Path,
+                        help="Defaults to the pinned source's selected landscape cohort")
     parser.add_argument("--classification", type=Path, default=ROOT / "data/external/trefoil_list.csv")
-    parser.add_argument("--grid-audit", type=Path, default=ROOT.parent /
-                        "results/revision-grid-audit/2026-10-28/grid_report.json")
     args = parser.parse_args()
     config = json.loads(args.config.read_text())
-    if args.scope == "full" and not args.prepare_only and config["status"] != "ready":
-        raise ValueError("Full runs require the documented driver validation gate")
-    if (config["cohort"] != "x6" or not config["exclude_other"]
+    if (config["cohort"] not in ("x1", "x6") or not config["exclude_other"]
             or config["threads"] != 1 or config["time_multiplier"] != 1
             or config["euclidean_init"] != "k-means++"
             or config["signature_grid_levels"] != config["levels"]
             or config["level_ablation_grid"] != "keep_primary_grid"):
         raise ValueError("Unsupported protocol convention")
+
+    if args.input_directory is None:
+        args.input_directory = ROOT / ("data/external/landscapes/ph-knotted-proteins/"
+            f"data/validation/landscapes/interpolated_{config['cohort']}")
+    checks = json.loads((ROOT / "data/external/input_checksums.json").read_text())
 
     start = perf_counter()
     _, labels, _ = load_canonical_classifications(args.classification)
@@ -55,17 +57,17 @@ def main():
                     if row["Representative"] and row["Representative"].lower() != "other")
     classes = sorted({labels[c]["Representative"] for c in chains})
     if len(chains) != 363 or len(labels) != 513 or len(classes) != 9:
-        raise ValueError("Cohort differs from the audited x6 collection")
+        raise ValueError("Cohort differs from the audited 363-protein collection")
     all_levels = {c: load_lan(args.input_directory / f"{c}_1.lan", config["levels"]) for c in chains}
     load_seconds = perf_counter() - start
     support = max(x for lan in all_levels.values() for level in lan for x, _ in level)
     input_hashes = {c: sha256_file(args.input_directory / f"{c}_1.lan") for c in chains}
-    audit = json.loads(args.grid_audit.read_text())
-    if (support != config["support_L"] or input_hashes != audit["input_sha256"]
-            or config["source_commit"] != audit["source_commit"]
-            or sha256_file(args.classification) != audit["classification_sha256"]):
-        raise ValueError("Inputs/support differ from the reconstruction audit")
-    selected = chains if args.scope == "full" else sorted(
+    expected_hashes = {c: checks['cohorts'][config['cohort']][f'{c}_1.lan'] for c in chains}
+    if (support != config["support_L"] or input_hashes != expected_hashes
+            or config["source_commit"] != checks["source_commit"]
+            or sha256_file(args.classification) != checks["classification_sha256"]):
+        raise ValueError("Inputs/support differ from the published input audit")
+    selected = chains if args.scope != "pilot" else sorted(
         c for label in classes for c in [c for c in chains if labels[c]["Representative"] == label][:2])
     landscapes = [all_levels[c] for c in selected]
     depth = np.array([float(labels[c]["Depth"]) for c in selected])
@@ -80,7 +82,11 @@ def main():
     run_seeds, seeds = seed_manifest(config["base_seed"], config["runs"], config["initialisations"])
     if args.scope == "pilot":
         run_seeds, seeds = run_seeds[:2], seeds[:2]
+    elif args.scope == "timing":
+        run_seeds, seeds = run_seeds[:10], seeds[:10]
     specs = specifications(config)
+    if args.scope != "full":
+        specs = [s for s in specs if s['group'] == 'primary']
     if args.only and not set(args.only).issubset({s["id"] for s in specs}):
         raise ValueError("Unknown specification ID")
     fruits_root = ROOT / "fruits"
@@ -97,11 +103,14 @@ def main():
         "source_commit": config["source_commit"], "fruits_commit": fruits_commit,
         "fruits_code_sha256": {str(p.relative_to(fruits_root)): sha256_file(p)
                                 for p in sorted((fruits_root / "fruits").rglob("*.py"))},
-        "grid_audit_sha256": sha256_file(args.grid_audit),
+        "input_audit_sha256": sha256_file(ROOT / "data/external/input_checksums.json"),
         "critical_grid_points": len(grid), "critical_grid": grid,
         "run_seeds": run_seeds, "start_seeds": seeds, "specifications": specs,
         "code_sha256": {str(p.relative_to(ROOT)): sha256_file(p) for p in
-                        [Path(__file__), ROOT / "scripts/report_revision.py", *sorted((ROOT / "src").glob("*.py"))]},
+                        [Path(__file__), *[ROOT / "src" / name for name in (
+                            "input_audit.py", "process_lan.py", "revision_features.py",
+                            "integrated_chen.py", "functional_l1.py", "revision_clustering.py",
+                            "revision_experiment.py")]]},
         "versions": {p: version(p) for p in
                      ("numpy", "scipy", "scikit-learn", "numba", "pysiglib", "torch")},
         "python": sys.version, "machine": platform.platform(), "host": platform.node(),
@@ -139,7 +148,8 @@ def main():
         shared = measurements["input_loading_seconds"]
         if spec["method"] not in ("flattened", "functional_l1"):
             shared += measurements["critical_grid_seconds"]
-        run_specification(spec, landscapes, grid, config, identity["classes"], seeds,
+        run_specification(spec, landscapes, grid, config, identity["classes"],
+                          seeds_for_specification(spec, config, seeds),
                           args.output_dir / spec["id"], shared)
     finished = [s["id"] for s in specs if (args.output_dir / s["id"] / "summary.json").exists()]
     save_json(args.output_dir / "status.json", dict(completed=finished, expected=len(specs),
