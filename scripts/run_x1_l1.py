@@ -1,4 +1,4 @@
-"""Primary x1 functional L1 k-medians, separately timed and checkpointed."""
+"""Primary x1 functional L1: ten ten-start runs (D-2026-025)."""
 import argparse
 import os
 for key in ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'NUMBA_NUM_THREADS'):
@@ -30,6 +30,13 @@ def main():
     session_start = perf_counter()
     timestamp = datetime.now(timezone.utc).isoformat()
     out = args.output_dir
+    reuse = None
+    if (out / 'manifest.json').exists():
+        previous = json.loads((out / 'manifest.json').read_text())['identity']
+        if len(previous['start_seeds']) == 100:
+            reuse = out
+            out = out.with_name(out.name + '-reduced-10')
+            print(f'Reduced schedule: preserving {reuse}; continuing in {out}', flush=True)
     out.mkdir(parents=True, exist_ok=True)
     vector_dir = ROOT.parent / 'results/x1-comparison/2026-11-02'
     reference = json.loads((vector_dir / 'manifest.json').read_text())['identity']
@@ -53,10 +60,12 @@ def main():
     assert max(x for lan in landscapes for level in lan for x, _ in level) == config['support_L']
     seeds = np.array(reference['start_seeds'])
     assert seeds.shape == (100, 10)
+    seeds = seeds[:10]
+    config = dict(config, runs=10)
     spec = dict(id='primary-functional_l1', group='primary', method='functional_l1',
                 levels=15, weight=3, points=1024)
     files = [Path(__file__), *sorted((ROOT / 'src').glob('*.py'))]
-    identity = dict(scope='full', purpose='primary x1 functional L1 comparison, D-2026-023',
+    identity = dict(scope='full', purpose='primary x1 functional L1 comparison, ten ten-start runs, D-2026-025',
                     config=config, specifications=[spec], chains=chains, classes=classes,
                     input_sha256=hashes, classification_sha256=sha256_file(classification),
                     vector_manifest_sha256=sha256_file(vector_dir / 'manifest.json'),
@@ -68,7 +77,20 @@ def main():
                                         for pool in threadpool_info()],
                                        key=lambda p: (p['internal_api'], p['prefix'])),
                     code_sha256={str(p.relative_to(ROOT)): sha256_file(p) for p in files},
-                    timing='One thread. Loading and functional conversion separately recorded; clustering includes all 1000 starts and any first-use compilation. No signature encoding. IO, scoring and report generation excluded from numerical stages. Session wall time separately recorded; resumed setup is not counted twice.')
+                    timing='One thread. Loading and functional conversion separately recorded; clustering includes all 100 starts and any first-use compilation. No signature encoding. IO, scoring and report generation excluded from numerical stages. Session wall time separately recorded; resumed setup is not counted twice.')
+    if reuse is not None:
+        old = json.loads((reuse / 'manifest.json').read_text())
+        for key in ('chains', 'classes', 'input_sha256', 'classification_sha256', 'specifications'):
+            assert old['identity'][key] == identity[key], key
+        assert old['identity']['start_seeds'][:10] == seeds.tolist()
+        for relative, expected in old['identity']['code_sha256'].items():
+            if relative.startswith('src/'):
+                assert sha256_file(ROOT / relative) == expected
+        assert {k: v for k, v in old['identity']['config'].items() if k != 'runs'} == {
+            k: v for k, v in config.items() if k != 'runs'}
+        loading_seconds = old['measurements']['input_loading_seconds']
+        identity['reused_manifest_sha256'] = sha256_file(reuse / 'manifest.json')
+        identity['reused_directory'] = str(reuse)
     manifest = bind_manifest(out / 'manifest.json', identity, dict(input_loading_seconds=loading_seconds))
     for relative, expected in identity['code_sha256'].items():
         snapshot = out / 'source' / relative
@@ -77,7 +99,22 @@ def main():
             shutil.copyfile(ROOT / relative, snapshot)
         assert sha256_file(snapshot) == expected
     save_npz(out / 'seeds.npz', start_seeds=seeds)
-    print('Validated primary x1 L1: 363 proteins, 15 levels, 100 runs x 10 starts; one thread.', flush=True)
+    if reuse is not None:
+        destination = out / spec['id']
+        destination.mkdir(exist_ok=True)
+        names = ['representation.json']
+        for i, row in enumerate(seeds):
+            checkpoint = reuse / spec['id'] / f'run-{i:03d}.json'
+            if checkpoint.exists():
+                fit = json.loads(checkpoint.read_text())
+                assert [s['seed'] for s in fit['starts']] == row.tolist()
+                names.extend([f'centres-{i:03d}.npz', checkpoint.name])
+        for name in names:
+            original, target = reuse / spec['id'] / name, destination / name
+            if not target.exists():
+                shutil.copyfile(original, target)
+            assert sha256_file(original) == sha256_file(target)
+    print('Validated primary x1 L1: 363 proteins, 15 levels, 10 runs x 10 starts; one thread.', flush=True)
     if args.prepare_only:
         return
     summary = run_specification(spec, landscapes, None, config, classes, seeds,
