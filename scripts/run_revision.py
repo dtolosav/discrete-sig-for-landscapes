@@ -116,7 +116,11 @@ def main():
         "python": sys.version, "machine": platform.platform(), "host": platform.node(),
         "thread_environment": {n: os.environ[n] for n in
             ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMBA_NUM_THREADS")},
-        "threadpools": [{k: v for k, v in pool.items() if k != "filepath"} for pool in threadpool_info()],
+        # Library discovery order can vary between processes; it is not part of
+        # the numerical environment and must not prevent checkpoint resumption.
+        "threadpools": sorted(
+            [{k: v for k, v in pool.items() if k != "filepath"} for pool in threadpool_info()],
+            key=lambda pool: (pool["internal_api"], pool["prefix"])),
         "timing_convention": "shared load/grid plus per-method evaluation, warm encoding/scaling, all starts; IO/metrics excluded",
         "resumption_convention": "retains completed-stage timings; repeated imports/loading and warmups excluded from core totals",
     }
