@@ -93,7 +93,7 @@ python scripts/audit_paper_inputs.py --paper-bundle results/paper-results-v1.0.0
 python scripts/check_reference_features.py --paper-bundle results/paper-results-v1.0.0
 ```
 
-The first two commands need only the ~93 MiB result archive. The third also
+The first two commands need only the ~95 MiB result archive. The third also
 needs the raw landscapes; it recomputes uniform-grid approximation errors and
 checks the per-chain level-11 areas underlying the appendix interpretation.
 The fourth recomputes two proteins per primary vector method in each regime
@@ -137,6 +137,11 @@ prefixes and checkpoint resumption. The Ubuntu CI job installs into an empty
 container and runs the real-data demonstration. These checks and regeneration
 of saved results are distinct from rerunning every full campaign. See the
 versioned release notes for the actual fresh-install and regression results.
+
+In the fresh WSL rehearsal, the six-method example took 48 seconds, saved-result
+reporting 18 seconds, and the full-grid reference checks 152 seconds. Each used
+less than 0.6 GiB peak resident memory. These are small-workflow measurements,
+not full-campaign benchmarks; installation and downloads are additional.
 
 Use at least several GiB of free memory and disk for a full run; do not build a
 single dense array containing every protein on the critical grid. DLFM encoding
