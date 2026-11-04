@@ -4,6 +4,8 @@ on:
     branches: [main, codex/reproducibility-release]
   pull_request:
   workflow_dispatch:
+  release:
+    types: [published]
 jobs:
   ubuntu:
     runs-on: ubuntu-24.04
@@ -35,6 +37,13 @@ jobs:
           python scripts/run_revision.py --scope pilot --output-dir results/demo
           python scripts/report_revision.py --run-dir results/demo
           python scripts/run_revision.py --scope pilot --output-dir results/demo
+      - name: Verify the published paper bundle
+        if: github.event_name == 'release'
+        run: |
+          python scripts/fetch_results.py
+          python scripts/report_revision.py --paper-bundle results/paper-results-v1.0.0
+          python scripts/audit_paper_inputs.py --paper-bundle results/paper-results-v1.0.0 --output-dir results/input-checks
+          python scripts/check_reference_features.py --paper-bundle results/paper-results-v1.0.0
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -43,3 +52,5 @@ jobs:
             results/demo/manifest.json
             results/demo/status.json
             results/demo/reports/
+            results/paper/
+            results/input-checks/
